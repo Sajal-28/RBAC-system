@@ -2,36 +2,43 @@ import React, { useState } from 'react';
 import API from '../../api/axios';
 import { X, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 
-const CreateUserModal = ({ isOpen, onClose, onUpdate }) => {
+/**
+ * CreateUserModal — role dropdown options depend on who is creating the user.
+ *
+ * super-admin → can create admin | user
+ * admin       → can only create user
+ */
+const CreateUserModal = ({ currentUser, isOpen, onClose, onUpdate }) => {
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
+    name:     '',
+    email:    '',
     password: '',
-    role: 'user',
+    role:     'user',
   });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error,   setError]   = useState('');
   const [success, setSuccess] = useState('');
+
+  // Roles this caller may assign
+  const allowedRoles =
+    currentUser?.role === 'super-admin'
+      ? [{ value: 'user', label: 'User' }, { value: 'admin', label: 'Admin' }]
+      : [{ value: 'user', label: 'User' }];
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
     setSuccess('');
-    
     try {
       await API.post('/api/users', formData);
       setSuccess('User created successfully!');
-      
-      // Delay closing and refreshing to show success message
       setTimeout(() => {
         onUpdate();
         onClose();
-        // Reset form
         setFormData({ name: '', email: '', password: '', role: 'user' });
         setSuccess('');
       }, 1500);
-      
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to create user');
     } finally {
@@ -44,6 +51,7 @@ const CreateUserModal = ({ isOpen, onClose, onUpdate }) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+        {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-slate-100">
           <h3 className="text-xl font-bold text-slate-900">Create New User</h3>
           <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 transition-colors">
@@ -51,6 +59,7 @@ const CreateUserModal = ({ isOpen, onClose, onUpdate }) => {
           </button>
         </div>
 
+        {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
           {error && (
             <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm flex items-center gap-2 border border-red-100">
@@ -58,7 +67,6 @@ const CreateUserModal = ({ isOpen, onClose, onUpdate }) => {
               {error}
             </div>
           )}
-
           {success && (
             <div className="bg-green-50 text-green-600 p-3 rounded-lg text-sm flex items-center gap-2 border border-green-100">
               <CheckCircle2 size={16} />
@@ -66,6 +74,7 @@ const CreateUserModal = ({ isOpen, onClose, onUpdate }) => {
             </div>
           )}
 
+          {/* Name */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-slate-700 block">Full Name</label>
             <input
@@ -78,6 +87,7 @@ const CreateUserModal = ({ isOpen, onClose, onUpdate }) => {
             />
           </div>
 
+          {/* Email */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-slate-700 block">Email Address</label>
             <input
@@ -90,6 +100,7 @@ const CreateUserModal = ({ isOpen, onClose, onUpdate }) => {
             />
           </div>
 
+          {/* Password */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-slate-700 block">Password</label>
             <input
@@ -102,6 +113,7 @@ const CreateUserModal = ({ isOpen, onClose, onUpdate }) => {
             />
           </div>
 
+          {/* Role */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-slate-700 block">Assign Role</label>
             <select
@@ -109,11 +121,18 @@ const CreateUserModal = ({ isOpen, onClose, onUpdate }) => {
               value={formData.role}
               onChange={(e) => setFormData({ ...formData, role: e.target.value })}
             >
-              <option value="user">User</option>
-              <option value="admin">Admin</option>
+              {allowedRoles.map((r) => (
+                <option key={r.value} value={r.value}>{r.label}</option>
+              ))}
             </select>
+            {currentUser?.role === 'admin' && (
+              <p className="text-xs text-slate-500 mt-1">
+                Admins can only create regular users.
+              </p>
+            )}
           </div>
 
+          {/* Actions */}
           <div className="flex gap-3 pt-4">
             <button
               type="button"

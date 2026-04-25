@@ -17,7 +17,7 @@ const Login = () => {
     setLoading(true);
     try {
       const user = await login(email, password);
-      if (user.role === 'admin') {
+      if (user.role === 'admin' || user.role === 'super-admin') {
         navigate('/admin/dashboard');
       } else {
         navigate('/dashboard');

@@ -1,17 +1,15 @@
 /**
- * @file components/common/AdminRoute.jsx
- * @description Route guard for admin-panel pages.
- * Allows both 'admin' and 'super-admin' roles through.
- * Redirects unauthorized users to /unauthorized.
+ * @file components/common/SuperAdminRoute.jsx
+ * @description Route guard for super-admin-only pages (e.g. Role Logs).
+ * Only users with role === 'super-admin' are allowed through.
+ * Everyone else is redirected to /unauthorized.
  */
 
 import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
-const ADMIN_ROLES = ['admin', 'super-admin'];
-
-const AdminRoute = () => {
+const SuperAdminRoute = () => {
   const { user, loading } = useAuth();
 
   if (loading) {
@@ -22,11 +20,11 @@ const AdminRoute = () => {
     );
   }
 
-  if (!user || !ADMIN_ROLES.includes(user.role)) {
+  if (!user || user.role !== 'super-admin') {
     return <Navigate to="/unauthorized" replace />;
   }
 
   return <Outlet />;
 };
 
-export default AdminRoute;
+export default SuperAdminRoute;

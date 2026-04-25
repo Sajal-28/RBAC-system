@@ -1,24 +1,34 @@
 /**
  * @file middleware/roleMiddleware.js
- * @description Middleware to restrict access to specific roles (e.g., Admin).
+ * @description Flexible role-based access control middleware.
+ * Exports authorizeRoles(...roles) — a factory that returns a middleware
+ * which grants access only if the authenticated user holds one of the specified roles.
+ *
+ * Usage:
+ *   authorizeRoles("super-admin")               — super-admin only
+ *   authorizeRoles("super-admin", "admin")       — both admin-tier roles
  */
 
 /**
- * @function authorizeAdmin
- * @description Checks if the authenticated user has an 'admin' role.
- * Requires the 'protect' middleware to have been executed first.
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @param {Function} next - Express next middleware function
- * @throws {Error} 403 - If user is not an admin.
+ * @function authorizeRoles
+ * @description Returns an Express middleware that checks if req.user.role
+ * is included in the provided allowed roles list.
+ * Requires the `protect` middleware to have run first (so req.user is populated).
+ *
+ * @param {...string} roles - One or more role strings that are permitted.
+ * @returns {Function} Express middleware function
+ * @throws {Error} 403 - If the user's role is not in the allowed list.
  */
-const authorizeAdmin = (req, res, next) => {
-  if (!req.user || req.user.role !== "admin") {
-    res.status(403);
-    throw new Error("Access denied: admin only");
-  }
-
-  next();
+const authorizeRoles = (...roles) => {
+  return (req, res, next) => {
+    if (!req.user || !roles.includes(req.user.role)) {
+      res.status(403);
+      throw new Error(
+        `Access denied: requires one of [${roles.join(", ")}] role`
+      );
+    }
+    next();
+  };
 };
 
-module.exports = { authorizeAdmin };
+module.exports = { authorizeRoles };

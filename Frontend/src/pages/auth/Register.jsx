@@ -34,7 +34,7 @@ const Register = () => {
         email: formData.email,
         password: formData.password,
       });
-      if (user.role === 'admin') {
+      if (user.role === 'admin' || user.role === 'super-admin') {
         navigate('/admin/dashboard');
       } else {
         navigate('/dashboard');

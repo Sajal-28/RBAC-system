@@ -1,35 +1,79 @@
 import React, { useState, useEffect } from 'react';
 import API from '../../api/axios';
-import { Users, Edit, Trash2, Loader2, Search, Calendar, ShieldCheck, Shield, UserPlus } from 'lucide-react';
+import {
+  Users, Edit, Trash2, Loader2,
+  ShieldCheck, Shield, Crown, UserPlus
+} from 'lucide-react';
 import EditUserModal from '../../components/common/EditUserModal';
 import CreateUserModal from '../../components/common/CreateUserModal';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 
-const AdminDashboard = () => {
-  const [users, setUsers] = useState([]);
-  const [stats, setStats] = useState({ totalUsers: 0, regularUsers: 0 });
-  const [loading, setLoading] = useState(true);
-  const [selectedUser, setSelectedUser] = useState(null);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const { user: currentUser, logout } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
+// ── Role badge helper ─────────────────────────────────────────────────────────
+const RoleBadge = ({ role }) => {
+  const config = {
+    'super-admin': {
+      cls: 'bg-amber-100 text-amber-700 border border-amber-200',
+      icon: <Crown size={12} />,
+      label: 'Super Admin',
+    },
+    admin: {
+      cls: 'bg-purple-100 text-purple-700 border border-purple-200',
+      icon: <ShieldCheck size={12} />,
+      label: 'Admin',
+    },
+    user: {
+      cls: 'bg-blue-100 text-blue-700 border border-blue-200',
+      icon: <Shield size={12} />,
+      label: 'User',
+    },
+  };
 
+  const { cls, icon, label } = config[role] || config.user;
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${cls}`}>
+      {icon}
+      {label}
+    </span>
+  );
+};
+
+// ── Stat card ─────────────────────────────────────────────────────────────────
+const StatCard = ({ icon: Icon, label, value, colour }) => (
+  <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-5">
+    <div className={`p-4 ${colour} rounded-xl`}>
+      <Icon size={24} className="text-current" />
+    </div>
+    <div>
+      <p className="text-sm font-medium text-slate-500">{label}</p>
+      <h3 className="text-3xl font-bold text-slate-900">{value}</h3>
+    </div>
+  </div>
+);
+
+// ── Main component ────────────────────────────────────────────────────────────
+const AdminDashboard = () => {
+  const [users, setUsers]                 = useState([]);
+  const [stats, setStats]                 = useState({ totalUsers: 0, adminUsers: 0, regularUsers: 0 });
+  const [loading, setLoading]             = useState(true);
+  const [selectedUser, setSelectedUser]   = useState(null);
+  const [isEditModalOpen, setEditOpen]    = useState(false);
+  const [isCreateModalOpen, setCreateOpen] = useState(false);
+  const [deleteError, setDeleteError]     = useState('');
+
+  const { user: currentUser, logout } = useAuth();
+  const navigate  = useNavigate();
+  const location  = useLocation();
   const isUsersView = location.pathname === '/admin/users';
 
-  useEffect(() => {
-    fetchData();
-  }, [location.pathname]);
+  useEffect(() => { fetchData(); }, [location.pathname]);
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const usersEndpoint = '/api/users';
       const [usersRes, statsRes] = await Promise.all([
-        API.get(usersEndpoint),
-        API.get('/api/users/stats')
+        API.get('/api/users'),
+        API.get('/api/users/stats'),
       ]);
       setUsers(usersRes.data.users || []);
       setStats(statsRes.data);
@@ -41,28 +85,71 @@ const AdminDashboard = () => {
   };
 
   const handleDelete = async (userId) => {
-    if (window.confirm('Are you sure you want to delete this user?')) {
-      try {
-        await API.delete(`/api/users/${userId}`);
-        
-        // If admin deletes themselves, logout and redirect to login
-        const currentUserId = currentUser?.id || currentUser?._id;
-        if (currentUserId === userId) {
-          await logout();
-          navigate('/login');
-          return;
-        }
-
-        await fetchData();
-      } catch (err) {
-        alert('Failed to delete user');
+    setDeleteError('');
+    if (!window.confirm('Are you sure you want to delete this user?')) return;
+    try {
+      await API.delete(`/api/users/${userId}`);
+      const currentUserId = currentUser?.id || currentUser?._id;
+      if (currentUserId === userId) {
+        await logout();
+        navigate('/login');
+        return;
       }
+      await fetchData();
+    } catch (err) {
+      setDeleteError(err.response?.data?.message || 'Failed to delete user');
     }
   };
 
   const openEditModal = (user) => {
     setSelectedUser(user);
-    setIsEditModalOpen(true);
+    setEditOpen(true);
+  };
+
+  // ── Decide which actions to render per row ────────────────────────────────
+  const renderActions = (rowUser) => {
+    const currentId    = currentUser?.id || currentUser?._id;
+    const isSelf       = rowUser._id === currentId;
+    const isSuperAdmin = rowUser.role === 'super-admin';
+
+    // Nobody can touch a super-admin row
+    if (isSuperAdmin) {
+      return (
+        <span className="text-xs font-medium text-amber-600 italic px-2">
+          Protected
+        </span>
+      );
+    }
+
+    // Cannot edit/delete own row from here
+    if (isSelf) {
+      return (
+        <span className="text-xs font-medium text-slate-400 italic px-2">
+          You
+        </span>
+      );
+    }
+
+
+
+    return (
+      <div className="flex items-center justify-end gap-2">
+        <button
+          onClick={() => openEditModal(rowUser)}
+          className="p-2 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-all"
+          title="Edit User"
+        >
+          <Edit size={18} />
+        </button>
+        <button
+          onClick={() => handleDelete(rowUser._id)}
+          className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+          title="Delete User"
+        >
+          <Trash2 size={18} />
+        </button>
+      </div>
+    );
   };
 
   if (loading) {
@@ -75,31 +162,43 @@ const AdminDashboard = () => {
 
   return (
     <div className="space-y-8">
-      {/* Stats Card */}
+      {/* ── Stats ── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-5">
-          <div className="p-4 bg-primary-50 rounded-xl">
-            <Users className="text-primary-600" size={24} />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-slate-500">
-              Total Registered Users
-            </p>
-            <h3 className="text-3xl font-bold text-slate-900">
-              {stats.totalUsers || 0}
-            </h3>
-          </div>
-        </div>
+        <StatCard
+          icon={Users}
+          label="Total Registered Users"
+          value={stats.totalUsers || 0}
+          colour="bg-primary-50 text-primary-600"
+        />
+        <StatCard
+          icon={ShieldCheck}
+          label="Administrators"
+          value={stats.adminUsers || 0}
+          colour="bg-purple-50 text-purple-600"
+        />
+        <StatCard
+          icon={Shield}
+          label="Regular Users"
+          value={stats.regularUsers || 0}
+          colour="bg-blue-50 text-blue-600"
+        />
       </div>
 
-      {/* Users Table Section */}
+      {/* ── Delete error banner ── */}
+      {deleteError && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+          {deleteError}
+        </div>
+      )}
+
+      {/* ── Users Table ── */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="p-6 border-b border-slate-100 flex items-center justify-between">
           <h2 className="text-lg font-bold text-slate-900">
             {isUsersView ? 'User Management' : 'System User Directory'}
           </h2>
-          <button 
-            onClick={() => setIsCreateModalOpen(true)}
+          <button
+            onClick={() => setCreateOpen(true)}
             className="btn-primary flex items-center gap-2 px-4 py-2 text-sm"
           >
             <UserPlus size={18} />
@@ -113,72 +212,51 @@ const AdminDashboard = () => {
               <tr className="bg-slate-50/50">
                 <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">User Info</th>
                 <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Role</th>
-                <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Created Date</th>
+                <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Joined</th>
                 <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {users.map((user) => (
-                <tr key={user._id} className="hover:bg-slate-50/50 transition-colors">
+              {users.map((u) => (
+                <tr key={u._id} className="hover:bg-slate-50/50 transition-colors">
+                  {/* User info */}
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 font-bold border border-slate-200">
-                        {user.name.charAt(0).toUpperCase()}
+                      <div className={`h-10 w-10 rounded-full flex items-center justify-center font-bold border text-sm ${
+                        u.role === 'super-admin'
+                          ? 'bg-amber-50 border-amber-200 text-amber-700'
+                          : u.role === 'admin'
+                          ? 'bg-purple-50 border-purple-200 text-purple-700'
+                          : 'bg-slate-100 border-slate-200 text-slate-600'
+                      }`}>
+                        {u.name.charAt(0).toUpperCase()}
                       </div>
                       <div>
-                        <div className="text-sm font-bold text-slate-900">{user.name}</div>
-                        <div className="text-xs text-slate-500">{user.email}</div>
+                        <div className="text-sm font-bold text-slate-900">{u.name}</div>
+                        <div className="text-xs text-slate-500">{u.email}</div>
                       </div>
                     </div>
                   </td>
+
+                  {/* Role badge */}
                   <td className="px-6 py-4">
-                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
-                      user.role === 'admin' 
-                        ? 'bg-purple-100 text-purple-700' 
-                        : 'bg-blue-100 text-blue-700'
-                    }`}>
-                      {user.role === 'admin' ? <ShieldCheck size={12} /> : <Shield size={12} />}
-                      <span className="capitalize">{user.role}</span>
-                    </span>
+                    <RoleBadge role={u.role} />
                   </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2 text-sm text-slate-600">
-                      <Calendar size={14} className="text-slate-400" />
-                      {new Date(user.createdAt).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric'
-                      })}
-                    </div>
+
+                  {/* Date */}
+                  <td className="px-6 py-4 text-sm text-slate-600">
+                    {new Date(u.createdAt).toLocaleDateString('en-US', {
+                      month: 'short', day: 'numeric', year: 'numeric'
+                    })}
                   </td>
+
+                  {/* Actions */}
                   <td className="px-6 py-4 text-right">
-                    {user.role === 'admin' ? (
-                      user._id === (currentUser?.id || currentUser?._id) ? (
-                        <span className="text-xs font-medium text-slate-400 italic px-2">Current User</span>
-                      ) : (
-                        <span className="text-xs font-medium text-amber-600 italic px-2">Admin Protected</span>
-                      )
-                    ) : (
-                      <div className="flex items-center justify-end gap-2">
-                        <button 
-                          onClick={() => openEditModal(user)}
-                          className="p-2 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-all"
-                          title="Edit User"
-                        >
-                          <Edit size={18} />
-                        </button>
-                        <button 
-                          onClick={() => handleDelete(user._id)}
-                          className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                          title="Delete User"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
-                    )}
+                    {renderActions(u)}
                   </td>
                 </tr>
               ))}
+
               {users.length === 0 && (
                 <tr>
                   <td colSpan="4" className="px-6 py-12 text-center text-slate-500">
@@ -191,19 +269,22 @@ const AdminDashboard = () => {
         </div>
       </div>
 
+      {/* ── Modals ── */}
       {isEditModalOpen && (
         <EditUserModal
           user={selectedUser}
+          currentUser={currentUser}
           isOpen={isEditModalOpen}
-          onClose={() => setIsEditModalOpen(false)}
+          onClose={() => setEditOpen(false)}
           onUpdate={fetchData}
         />
       )}
 
       {isCreateModalOpen && (
         <CreateUserModal
+          currentUser={currentUser}
           isOpen={isCreateModalOpen}
-          onClose={() => setIsCreateModalOpen(false)}
+          onClose={() => setCreateOpen(false)}
           onUpdate={fetchData}
         />
       )}
