@@ -68,7 +68,7 @@ const loginUser = asyncHandler(async (req, res) => {
   // Find user by email and include password field
   const user = await User.findOne({ email: email.toLowerCase() }).select("+password");
 
-  // Validate user and password
+  // Validate user and password with a single generic message (security best practice)
   if (!user || !(await user.comparePassword(password))) {
     res.status(401);
     throw new Error("Invalid email or password");

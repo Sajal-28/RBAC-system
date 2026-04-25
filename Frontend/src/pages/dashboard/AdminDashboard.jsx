@@ -152,22 +152,30 @@ const AdminDashboard = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <button 
-                        onClick={() => openEditModal(user)}
-                        className="p-2 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-all"
-                        title="Edit User"
-                      >
-                        <Edit size={18} />
-                      </button>
-                      <button 
-                        onClick={() => handleDelete(user._id)}
-                        className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                        title="Delete User"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
+                    {user.role === 'admin' ? (
+                      user._id === (currentUser?.id || currentUser?._id) ? (
+                        <span className="text-xs font-medium text-slate-400 italic px-2">Current User</span>
+                      ) : (
+                        <span className="text-xs font-medium text-amber-600 italic px-2">Admin Protected</span>
+                      )
+                    ) : (
+                      <div className="flex items-center justify-end gap-2">
+                        <button 
+                          onClick={() => openEditModal(user)}
+                          className="p-2 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-all"
+                          title="Edit User"
+                        >
+                          <Edit size={18} />
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(user._id)}
+                          className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                          title="Delete User"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}

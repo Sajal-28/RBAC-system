@@ -24,32 +24,28 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (email, password) => {
-    setLoading(true);
+    // NOTE: Do NOT touch global loading here — it controls route rendering (PublicRoute).
+    // Toggling it would unmount the Login page and wipe its local error state.
+    // Login.jsx manages its own loading spinner locally.
     try {
       const response = await API.post('/api/auth/login', { email, password });
-      const userData = response.data.user || response.data;
+      const userData = response.data.user;
       setUser(userData);
       return userData;
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed');
       throw err;
-    } finally {
-      setLoading(false);
     }
   };
 
   const register = async (userData) => {
-    setLoading(true);
+    // Same reasoning as login — do NOT touch global loading here.
     try {
       const response = await API.post('/api/auth/register', userData);
-      const newUser = response.data.user || response.data;
+      const newUser = response.data.user;
       setUser(newUser);
       return newUser;
     } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed');
       throw err;
-    } finally {
-      setLoading(false);
     }
   };
 

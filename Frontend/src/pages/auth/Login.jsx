@@ -23,7 +23,7 @@ const Login = () => {
         navigate('/dashboard');
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Invalid credentials');
+      setError(err.response?.data?.message || 'Invalid email or password');
     } finally {
       setLoading(false);
     }

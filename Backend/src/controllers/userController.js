@@ -89,10 +89,22 @@ const updateUserByAdmin = asyncHandler(async (req, res) => {
     throw new Error("Invalid user ID");
   }
 
+  // Prevent self-management through this route
+  if (id === req.user._id.toString()) {
+    res.status(403);
+    throw new Error("Admins cannot edit their own account through the management panel. Please use the Profile page.");
+  }
+
   const user = await User.findById(id);
   if (!user) {
     res.status(404);
     throw new Error("User not found");
+  }
+
+  // Prevent editing other admins
+  if (user.role === "admin") {
+    res.status(403);
+    throw new Error("You do not have permission to modify another administrator's account");
   }
 
   // Update fields if provided
@@ -154,6 +166,12 @@ const deleteUserByAdmin = asyncHandler(async (req, res) => {
   if (!user) {
     res.status(404);
     throw new Error("User not found");
+  }
+
+  // Prevent deleting other admins
+  if (user.role === "admin") {
+    res.status(403);
+    throw new Error("Administrators cannot be deleted through this route");
   }
 
   // Prevent self-deletion
