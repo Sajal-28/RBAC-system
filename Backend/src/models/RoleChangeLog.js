@@ -34,7 +34,7 @@ const roleChangeLogSchema = new mongoose.Schema(
      */
     previousRole: {
       type: String,
-      enum: ["super-admin", "admin", "user"],
+      enum: ["super-admin", "admin", "user", "none"],
       required: true
     },
 

@@ -21,7 +21,7 @@ const CreateUserModal = ({ currentUser, isOpen, onClose, onUpdate }) => {
 
   // Roles this caller may assign
   const allowedRoles =
-    currentUser?.role === 'super-admin'
+    currentUser?.role === 'super-admin' || currentUser?.role === 'admin'
       ? [{ value: 'user', label: 'User' }, { value: 'admin', label: 'Admin' }]
       : [{ value: 'user', label: 'User' }];
 
@@ -125,11 +125,7 @@ const CreateUserModal = ({ currentUser, isOpen, onClose, onUpdate }) => {
                 <option key={r.value} value={r.value}>{r.label}</option>
               ))}
             </select>
-            {currentUser?.role === 'admin' && (
-              <p className="text-xs text-slate-500 mt-1">
-                Admins can only create regular users.
-              </p>
-            )}
+
           </div>
 
           {/* Actions */}

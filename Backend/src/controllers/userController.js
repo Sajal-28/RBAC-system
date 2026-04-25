@@ -81,7 +81,7 @@ const createUserByAdmin = asyncHandler(async (req, res) => {
 
   // Determine what roles this caller may assign
   const allowedRoles =
-    callerRole === "super-admin" ? ["admin", "user"] : ["user"];
+    callerRole === "super-admin" || callerRole === "admin" ? ["admin", "user"] : ["user"];
 
   const assignedRole = role || "user";
 
@@ -97,6 +97,16 @@ const createUserByAdmin = asyncHandler(async (req, res) => {
     email: email.toLowerCase(),
     password,
     role: assignedRole
+  });
+
+  // Log user creation
+  const note = `${roleLabel(callerRole)} ${req.user.name} created a new user ${user.name} with role ${assignedRole}`;
+  await RoleChangeLog.create({
+    changedBy: req.user._id,
+    targetUser: user._id,
+    previousRole: "none",
+    newRole: assignedRole,
+    note
   });
 
   res.status(201).json({
