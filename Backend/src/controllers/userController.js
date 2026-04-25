@@ -22,7 +22,7 @@
 
 const mongoose = require("mongoose");
 const User = require("../models/User");
-const RoleChangeLog = require("../models/RoleChangeLog");
+const ChangeLog = require("../models/ChangeLog");
 const asyncHandler = require("../middleware/asyncHandler");
 
 // ─────────────────────────────────────────────
@@ -101,12 +101,14 @@ const createUserByAdmin = asyncHandler(async (req, res) => {
 
   // Log user creation
   const note = `${roleLabel(callerRole)} ${req.user.name} created a new user ${user.name} with role ${assignedRole}`;
-  await RoleChangeLog.create({
+  await ChangeLog.create({
+    action: "CREATE",
     changedBy: req.user._id,
     targetUser: user._id,
-    previousRole: "none",
-    newRole: assignedRole,
-    note
+    targetUserName: user.name,
+    targetUserEmail: user.email,
+    description: note,
+    details: { role: assignedRole }
   });
 
   res.status(201).json({
@@ -160,10 +162,17 @@ const updateUserByAdmin = asyncHandler(async (req, res) => {
     throw new Error("Super Admin accounts cannot be modified");
   }
 
-  // Removed the restriction that prevented admins from modifying other admins.
+  let action = "UPDATE";
+  let details = {};
+  let descriptionParts = [];
 
   // ── Update basic fields ──────────────────────────────────────────────────
-  if (name) targetUser.name = name;
+  if (name && name !== targetUser.name) {
+    descriptionParts.push(`name from '${targetUser.name}' to '${name}'`);
+    details.oldName = targetUser.name;
+    details.newName = name;
+    targetUser.name = name;
+  }
 
   if (email && email.toLowerCase() !== targetUser.email) {
     const emailExists = await User.findOne({ email: email.toLowerCase() });
@@ -171,6 +180,9 @@ const updateUserByAdmin = asyncHandler(async (req, res) => {
       res.status(409);
       throw new Error("Email is already in use by another account");
     }
+    descriptionParts.push(`email from '${targetUser.email}' to '${email.toLowerCase()}'`);
+    details.oldEmail = targetUser.email;
+    details.newEmail = email.toLowerCase();
     targetUser.email = email.toLowerCase();
   }
 
@@ -189,25 +201,27 @@ const updateUserByAdmin = asyncHandler(async (req, res) => {
       throw new Error("The 'super-admin' role cannot be assigned through this route");
     }
 
-    // Removed the restriction that prevented admins from demoting users.
-
-    // Capture previous role before saving
-    const previousRole = targetUser.role;
+    action = "ROLE_CHANGE";
+    descriptionParts.push(`role from '${targetUser.role}' to '${role}'`);
+    details.oldRole = targetUser.role;
+    details.newRole = role;
     targetUser.role = role;
-
-    // ── Save role change to audit log ──────────────────────────────────────
-    const note = `${roleLabel(caller.role)} ${caller.name} changed ${targetUser.name}'s role from ${previousRole} to ${role}`;
-
-    await RoleChangeLog.create({
-      changedBy: caller._id,
-      targetUser: targetUser._id,
-      previousRole,
-      newRole: role,
-      note
-    });
   }
 
   const updatedUser = await targetUser.save();
+
+  if (descriptionParts.length > 0) {
+    const note = `${roleLabel(caller.role)} ${caller.name} updated ${updatedUser.name}: changed ${descriptionParts.join(", ")}`;
+    await ChangeLog.create({
+      action,
+      changedBy: caller._id,
+      targetUser: updatedUser._id,
+      targetUserName: updatedUser.name,
+      targetUserEmail: updatedUser.email,
+      description: note,
+      details
+    });
+  }
 
   res.status(200).json({
     success: true,
@@ -256,7 +270,14 @@ const deleteUserByAdmin = asyncHandler(async (req, res) => {
     throw new Error("Super Admin accounts cannot be deleted");
   }
 
-  // Removed the restriction that prevented admins from deleting other admins.
+  const note = `${roleLabel(caller.role)} ${caller.name} deleted user ${targetUser.name} (${targetUser.email})`;
+  await ChangeLog.create({
+    action: "DELETE",
+    changedBy: caller._id,
+    targetUserName: targetUser.name,
+    targetUserEmail: targetUser.email,
+    description: note
+  });
 
   await targetUser.deleteOne();
 
@@ -290,15 +311,15 @@ const getSystemStats = asyncHandler(async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// GET /api/users/role-logs
+// GET /api/users/change-logs
 // ─────────────────────────────────────────────────────────────────────────────
 /**
- * @desc    Get role change audit logs
- * @route   GET /api/users/role-logs
+ * @desc    Get all change audit logs
+ * @route   GET /api/users/change-logs
  * @access  Private / Super Admin
  */
-const getRoleLogs = asyncHandler(async (req, res) => {
-  const logs = await RoleChangeLog.find()
+const getChangeLogs = asyncHandler(async (req, res) => {
+  const logs = await ChangeLog.find()
     .populate("changedBy", "name email role")
     .populate("targetUser", "name email role")
     .sort({ createdAt: -1 });
@@ -350,7 +371,15 @@ const updateOwnProfile = asyncHandler(async (req, res) => {
     throw new Error("You are not allowed to update your role through this route");
   }
 
-  if (name) user.name = name;
+  let descriptionParts = [];
+  let details = {};
+
+  if (name && name !== user.name) {
+    descriptionParts.push(`name from '${user.name}' to '${name}'`);
+    details.oldName = user.name;
+    details.newName = name;
+    user.name = name;
+  }
 
   if (email && email.toLowerCase() !== user.email) {
     const emailExists = await User.findOne({ email: email.toLowerCase() });
@@ -358,10 +387,25 @@ const updateOwnProfile = asyncHandler(async (req, res) => {
       res.status(409);
       throw new Error("Email is already in use by another account");
     }
+    descriptionParts.push(`email from '${user.email}' to '${email.toLowerCase()}'`);
+    details.oldEmail = user.email;
+    details.newEmail = email.toLowerCase();
     user.email = email.toLowerCase();
   }
 
   const updatedUser = await user.save();
+
+  if (descriptionParts.length > 0) {
+    await ChangeLog.create({
+      action: "UPDATE",
+      changedBy: updatedUser._id,
+      targetUser: updatedUser._id,
+      targetUserName: updatedUser.name,
+      targetUserEmail: updatedUser.email,
+      description: `User ${updatedUser.name} updated own profile: changed ${descriptionParts.join(", ")}`,
+      details
+    });
+  }
 
   res.status(200).json({
     success: true,
@@ -381,7 +425,7 @@ module.exports = {
   updateUserByAdmin,
   deleteUserByAdmin,
   getSystemStats,
-  getRoleLogs,
+  getChangeLogs,
   getOwnProfile,
   updateOwnProfile
 };

@@ -23,7 +23,7 @@ const Sidebar = () => {
   const superAdminLinks = [
     { name: 'Dashboard',  path: '/admin/dashboard',  icon: LayoutDashboard },
     { name: 'Users',      path: '/admin/users',       icon: Users },
-    { name: 'Role Logs',  path: '/admin/role-logs',   icon: ScrollText },
+    { name: 'Audit Logs',  path: '/admin/change-logs',   icon: ScrollText },
     { name: 'Profile',    path: '/profile',            icon: UserCircle },
   ];
 

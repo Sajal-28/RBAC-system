@@ -12,7 +12,7 @@ import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import UserDashboard from './pages/dashboard/UserDashboard';
 import AdminDashboard from './pages/dashboard/AdminDashboard';
-import RoleLogsPage from './pages/dashboard/RoleLogsPage';
+import ChangeLogsPage from './pages/dashboard/ChangeLogsPage';
 import MyProfile from './pages/profile/MyProfile';
 import Unauthorized from './pages/error/Unauthorized';
 import NotFound from './pages/error/NotFound';
@@ -63,7 +63,7 @@ function App() {
 
               {/* Super Admin only routes */}
               <Route element={<SuperAdminRoute />}>
-                <Route path="/admin/role-logs" element={<RoleLogsPage />} />
+                <Route path="/admin/change-logs" element={<ChangeLogsPage />} />
               </Route>
             </Route>
           </Route>

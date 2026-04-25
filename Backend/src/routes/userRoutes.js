@@ -20,7 +20,7 @@ const {
   updateUserByAdmin,
   deleteUserByAdmin,
   getSystemStats,
-  getRoleLogs,
+  getChangeLogs,
   getOwnProfile,
   updateOwnProfile
 } = require("../controllers/userController");
@@ -41,12 +41,12 @@ router.get(
   getSystemStats
 );
 
-// Role change audit log — super-admin only
+// Change audit log — super-admin only
 router.get(
-  "/role-logs",
+  "/change-logs",
   protect,
   authorizeRoles("super-admin"),
-  getRoleLogs
+  getChangeLogs
 );
 
 router.get("/", protect, authorizeRoles("super-admin", "admin"), getAllUsers);

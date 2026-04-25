@@ -6,6 +6,7 @@
 const User = require("../models/User");
 const asyncHandler = require("../middleware/asyncHandler");
 const generateToken = require("../utils/generateToken");
+const ChangeLog = require("../models/ChangeLog");
 
 /**
  * @desc    Register a new user
@@ -38,6 +39,17 @@ const registerUser = asyncHandler(async (req, res) => {
 
   // Generate JWT and set in cookie
   generateToken(res, user);
+
+  // Log registration
+  await ChangeLog.create({
+    action: "CREATE",
+    changedBy: user._id, // Self-registered
+    targetUser: user._id,
+    targetUserName: user.name,
+    targetUserEmail: user.email,
+    description: `User self-registered: ${user.name} (${user.email})`,
+    details: { role: "user" }
+  });
 
   res.status(201).json({
     success: true,
