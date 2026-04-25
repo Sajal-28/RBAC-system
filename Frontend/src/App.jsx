@@ -1,6 +1,5 @@
-import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import PublicRoute from './components/common/PublicRoute';
 import AdminRoute from './components/common/AdminRoute';
@@ -16,7 +15,6 @@ import ChangeLogsPage from './pages/dashboard/ChangeLogsPage';
 import MyProfile from './pages/profile/MyProfile';
 import Unauthorized from './pages/error/Unauthorized';
 import NotFound from './pages/error/NotFound';
-import { useAuth } from './context/AuthContext';
 
 /**
  * Root redirect: sends users to the correct dashboard based on their role.

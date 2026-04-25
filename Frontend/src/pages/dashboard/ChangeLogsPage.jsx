@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import API from '../../api/axios';
-import { ScrollText, Loader2, ArrowRight, ShieldCheck, Crown, Shield, PlusCircle, Pencil, Trash2, UserCog } from 'lucide-react';
+import { ScrollText, Loader2, Shield, PlusCircle, Pencil, Trash2, UserCog } from 'lucide-react';
 
 // ── Action badge (inline) ───────────────────────────────────────────────────────
 const ActionBadge = ({ action }) => {

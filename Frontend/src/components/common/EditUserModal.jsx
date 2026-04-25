@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import API from '../../api/axios';
 import { X, Loader2, AlertCircle } from 'lucide-react';
 

@@ -6,7 +6,7 @@
  *  GET  /profile          → any authenticated user
  *  PUT  /profile          → any authenticated user
  *  GET  /stats            → admin, super-admin
- *  GET  /role-logs        → super-admin only
+ *  GET  /change-logs      → super-admin only
  *  GET  /                 → admin, super-admin
  *  POST /                 → admin, super-admin
  *  PUT  /:id              → admin, super-admin
