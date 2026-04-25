@@ -43,7 +43,7 @@ const MyProfile = () => {
         name: formData.name,
         email: formData.email,
       });
-      const updatedUser = response.data.user || response.data;
+      const updatedUser = response.data.user;
       setUser(updatedUser); // Update global auth state
       setMessage({ type: 'success', text: 'Profile updated successfully' });
     } catch (err) {

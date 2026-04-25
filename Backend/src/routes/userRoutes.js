@@ -6,6 +6,7 @@
 const express = require("express");
 const {
   getAllUsers,
+  createUserByAdmin,
   updateUserByAdmin,
   deleteUserByAdmin,
   getSystemStats,
@@ -30,6 +31,7 @@ router.put("/profile", protect, updateOwnProfile);
  */
 router.get("/stats", protect, authorizeAdmin, getSystemStats);
 router.get("/", protect, authorizeAdmin, getAllUsers);
+router.post("/", protect, authorizeAdmin, createUserByAdmin);
 router.put("/:id", protect, authorizeAdmin, updateUserByAdmin);
 router.delete("/:id", protect, authorizeAdmin, deleteUserByAdmin);
 

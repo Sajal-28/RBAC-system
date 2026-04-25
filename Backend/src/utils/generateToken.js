@@ -29,7 +29,8 @@ const generateToken = (res, user) => {
     httpOnly: true, // Prevents client-side JS from accessing the cookie
     secure: process.env.NODE_ENV === "production", // Only send over HTTPS in production
     sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // CSRF protection
-    maxAge: 7 * 24 * 60 * 60 * 1000 // Cookie lifespan (7 days in milliseconds)
+    maxAge: 7 * 24 * 60 * 60 * 1000, // Cookie lifespan (7 days in milliseconds)
+    path: "/" // Ensure cookie is sent for all paths
   });
 };
 

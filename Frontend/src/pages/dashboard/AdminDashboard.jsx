@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import API from '../../api/axios';
-import { Users, Edit, Trash2, Loader2, Search, Calendar, ShieldCheck, Shield } from 'lucide-react';
+import { Users, Edit, Trash2, Loader2, Search, Calendar, ShieldCheck, Shield, UserPlus } from 'lucide-react';
 import EditUserModal from '../../components/common/EditUserModal';
+import CreateUserModal from '../../components/common/CreateUserModal';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -11,6 +12,7 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const { user: currentUser, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -24,13 +26,13 @@ const AdminDashboard = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const usersEndpoint = isUsersView ? '/api/users?role=user' : '/api/users';
+      const usersEndpoint = '/api/users';
       const [usersRes, statsRes] = await Promise.all([
         API.get(usersEndpoint),
         API.get('/api/users/stats')
       ]);
-      setUsers(usersRes.data.users || usersRes.data);
-      setStats(statsRes.data.stats || statsRes.data);
+      setUsers(usersRes.data.users || []);
+      setStats(statsRes.data);
     } catch (err) {
       console.error('Failed to fetch admin data', err);
     } finally {
@@ -81,10 +83,10 @@ const AdminDashboard = () => {
           </div>
           <div>
             <p className="text-sm font-medium text-slate-500">
-              {isUsersView ? 'Total Regular Users' : 'Total Registered Users'}
+              Total Registered Users
             </p>
             <h3 className="text-3xl font-bold text-slate-900">
-              {isUsersView ? (stats.regularUsers || 0) : (stats.totalUsers || 0)}
+              {stats.totalUsers || 0}
             </h3>
           </div>
         </div>
@@ -96,6 +98,13 @@ const AdminDashboard = () => {
           <h2 className="text-lg font-bold text-slate-900">
             {isUsersView ? 'User Management' : 'System User Directory'}
           </h2>
+          <button 
+            onClick={() => setIsCreateModalOpen(true)}
+            className="btn-primary flex items-center gap-2 px-4 py-2 text-sm"
+          >
+            <UserPlus size={18} />
+            Add New User
+          </button>
         </div>
 
         <div className="overflow-x-auto">
@@ -179,6 +188,14 @@ const AdminDashboard = () => {
           user={selectedUser}
           isOpen={isEditModalOpen}
           onClose={() => setIsEditModalOpen(false)}
+          onUpdate={fetchData}
+        />
+      )}
+
+      {isCreateModalOpen && (
+        <CreateUserModal
+          isOpen={isCreateModalOpen}
+          onClose={() => setIsCreateModalOpen(false)}
           onUpdate={fetchData}
         />
       )}

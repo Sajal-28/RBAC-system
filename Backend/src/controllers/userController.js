@@ -28,6 +28,53 @@ const getAllUsers = asyncHandler(async (req, res) => {
 });
 
 /**
+ * @desc    Create a new user (Admin only)
+ * @route   POST /api/users
+ * @access  Private/Admin
+ */
+const createUserByAdmin = asyncHandler(async (req, res) => {
+  const { name, email, password, role } = req.body;
+
+  // Basic validation
+  if (!name || !email || !password) {
+    res.status(400);
+    throw new Error("Name, email and password are required");
+  }
+
+  // Check if user already exists
+  const existingUser = await User.findOne({ email: email.toLowerCase() });
+  if (existingUser) {
+    res.status(409);
+    throw new Error("Email is already registered");
+  }
+
+  // Validate role if provided
+  if (role && !["admin", "user"].includes(role)) {
+    res.status(400);
+    throw new Error("Invalid role. Must be 'admin' or 'user'");
+  }
+
+  // Create new user
+  const user = await User.create({
+    name,
+    email: email.toLowerCase(),
+    password,
+    role: role || "user"
+  });
+
+  res.status(201).json({
+    success: true,
+    message: "User created successfully",
+    user: {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role
+    }
+  });
+});
+
+/**
  * @desc    Update user by ID (Admin only)
  * @route   PUT /api/users/:id
  * @access  Private/Admin
@@ -50,8 +97,30 @@ const updateUserByAdmin = asyncHandler(async (req, res) => {
 
   // Update fields if provided
   if (name) user.name = name;
-  if (email) user.email = email.toLowerCase();
-  if (role) user.role = role;
+  
+  if (email && email.toLowerCase() !== user.email) {
+    const emailExists = await User.findOne({ email: email.toLowerCase() });
+    if (emailExists) {
+      res.status(409);
+      throw new Error("Email is already in use by another account");
+    }
+    user.email = email.toLowerCase();
+  }
+
+  if (role) {
+    // Validate role
+    if (!["admin", "user"].includes(role)) {
+      res.status(400);
+      throw new Error("Invalid role. Must be 'admin' or 'user'");
+    }
+
+    // Prevent self-demotion
+    if (id === req.user._id.toString() && role !== "admin") {
+      res.status(403);
+      throw new Error("You cannot demote yourself from the admin role");
+    }
+    user.role = role;
+  }
 
   const updatedUser = await user.save();
 
@@ -85,6 +154,12 @@ const deleteUserByAdmin = asyncHandler(async (req, res) => {
   if (!user) {
     res.status(404);
     throw new Error("User not found");
+  }
+
+  // Prevent self-deletion
+  if (id === req.user._id.toString()) {
+    res.status(403);
+    throw new Error("Admins cannot delete their own account");
   }
 
   await user.deleteOne();
@@ -147,7 +222,15 @@ const updateOwnProfile = asyncHandler(async (req, res) => {
 
   // Update fields if provided
   if (name) user.name = name;
-  if (email) user.email = email.toLowerCase();
+  
+  if (email && email.toLowerCase() !== user.email) {
+    const emailExists = await User.findOne({ email: email.toLowerCase() });
+    if (emailExists) {
+      res.status(409);
+      throw new Error("Email is already in use by another account");
+    }
+    user.email = email.toLowerCase();
+  }
 
   const updatedUser = await user.save();
 
@@ -165,6 +248,7 @@ const updateOwnProfile = asyncHandler(async (req, res) => {
 
 module.exports = {
   getAllUsers,
+  createUserByAdmin,
   updateUserByAdmin,
   deleteUserByAdmin,
   getSystemStats,
