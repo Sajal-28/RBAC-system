@@ -5,6 +5,7 @@
 
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const BlacklistedToken = require("../models/BlacklistedToken");
 const asyncHandler = require("./asyncHandler");
 
 /**
@@ -22,6 +23,13 @@ const protect = asyncHandler(async (req, res, next) => {
   if (!token) {
     res.status(401);
     throw new Error("Not authorized, token missing");
+  }
+
+  // Check if token is blacklisted
+  const isBlacklisted = await BlacklistedToken.findOne({ token });
+  if (isBlacklisted) {
+    res.status(401);
+    throw new Error("Not authorized, token has been invalidated");
   }
 
   try {

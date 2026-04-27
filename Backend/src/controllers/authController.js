@@ -7,6 +7,7 @@ const User = require("../models/User");
 const asyncHandler = require("../middleware/asyncHandler");
 const generateToken = require("../utils/generateToken");
 const ChangeLog = require("../models/ChangeLog");
+const BlacklistedToken = require("../models/BlacklistedToken");
 
 /**
  * @desc    Register a new user
@@ -107,6 +108,13 @@ const loginUser = asyncHandler(async (req, res) => {
  * @access  Private
  */
 const logoutUser = asyncHandler(async (req, res) => {
+  const token = req.cookies?.token;
+
+  if (token) {
+    // Add the active token to the blacklist collection
+    await BlacklistedToken.create({ token });
+  }
+
   // Clear the JWT cookie by setting an expired date
   res.cookie("token", "", {
     httpOnly: true,
