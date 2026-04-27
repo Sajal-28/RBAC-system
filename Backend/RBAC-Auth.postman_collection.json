@@ -2,115 +2,265 @@
   "info": {
     "_postman_id": "67fadb2b-6ef9-43f5-8bb8-13a3d290a8f2",
     "name": "RBAC Auth Backend Collection",
-    "description": "Postman collection for RBAC Authentication backend APIs.",
+    "description": "Complete Postman collection for the MERN Stack RBAC Authentication System.\n\n⚠️ IMPORTANT: This API uses HTTP-only cookies for JWT storage.\n- Enable the Cookie Jar in Postman (Settings → Cookies → Cookie Jar)\n- Ensure 'Follow redirects' is enabled so cookies are preserved across requests.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
     {
-      "name": "Auth",
+      "name": "🟢 Auth (Public)",
+      "description": "Authentication endpoints. No token required. Cookies are automatically set on Register and Login.",
       "item": [
         {
           "name": "Register User",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"John User\",\n  \"email\": \"john@example.com\",\n  \"password\": \"123456\"\n}"
+              "raw": "{\n  \"name\": \"John User\",\n  \"email\": \"john@example.com\",\n  \"password\": \"password123\"\n}"
             },
-            "url": "{{baseUrl}}/api/auth/register"
+            "url": "{{baseUrl}}/api/auth/register",
+            "description": "Register a new user. Default role is 'user'. Returns user data and sets JWT cookie."
           }
         },
         {
           "name": "Login User",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"123456\"\n}"
+              "raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"password123\"\n}"
             },
-            "url": "{{baseUrl}}/api/auth/login"
-          }
-        },
-        {
-          "name": "Get Current User",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/auth/me"
+            "url": "{{baseUrl}}/api/auth/login",
+            "description": "Authenticate user and set JWT HTTP-only cookie."
           }
         },
         {
           "name": "Logout User",
           "request": {
             "method": "POST",
-            "url": "{{baseUrl}}/api/auth/logout"
+            "header": [],
+            "url": "{{baseUrl}}/api/auth/logout",
+            "description": "Clear authentication cookie and blacklist the token. Requires valid cookie."
+          }
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/auth/me",
+            "description": "Get details of the currently logged-in user based on the JWT cookie."
           }
         }
       ]
     },
     {
-      "name": "Users",
+      "name": "👤 Profile (Any Authenticated User)",
+      "description": "Endpoints for managing the authenticated user's own profile. Accessible by all roles (user, admin, super-admin).",
       "item": [
         {
           "name": "Get Own Profile",
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/api/users/profile"
+            "header": [],
+            "url": "{{baseUrl}}/api/users/profile",
+            "description": "Retrieve the current user's profile (excludes password)."
           }
         },
         {
           "name": "Update Own Profile",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"John Updated\",\n  \"email\": \"john.updated@example.com\"\n}"
             },
-            "url": "{{baseUrl}}/api/users/profile"
+            "url": "{{baseUrl}}/api/users/profile",
+            "description": "Update own name and/or email. Role cannot be changed through this endpoint."
           }
-        },
+        }
+      ]
+    },
+    {
+      "name": "🛠️ Admin Panel (Admin + Super Admin)",
+      "description": "User management endpoints. Requires 'admin' or 'super-admin' role.",
+      "item": [
         {
-          "name": "Get All Users (Admin)",
+          "name": "Get All Users",
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/api/users"
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users?role=admin",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users"
+              ],
+              "query": [
+                {
+                  "key": "role",
+                  "value": "admin",
+                  "description": "Optional filter: 'user', 'admin', or 'super-admin'"
+                }
+              ]
+            },
+            "description": "Get all registered users. Optionally filter by role using query parameter."
           }
         },
         {
-          "name": "Update User By ID (Admin)",
+          "name": "Create User (Admin)",
           "request": {
-            "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Updated Name\",\n  \"email\": \"updated@example.com\",\n  \"role\": \"user\"\n}"
+              "raw": "{\n  \"name\": \"New User\",\n  \"email\": \"newuser@example.com\",\n  \"password\": \"password123\",\n  \"role\": \"user\"\n}"
             },
-            "url": "{{baseUrl}}/api/users/:id"
+            "url": "{{baseUrl}}/api/users",
+            "description": "Create a new user. Allowed roles to assign: 'admin' or 'user' (super-admin cannot be assigned via this route)."
           }
         },
         {
-          "name": "Delete User By ID (Admin)",
+          "name": "Update User By ID",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Name\",\n  \"email\": \"updated@example.com\",\n  \"role\": \"admin\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "64f8a1b2c3d4e5f6a7b8c9d0",
+                  "description": "MongoDB ObjectId of the target user"
+                }
+              ]
+            },
+            "description": "Update a user's name, email, or role.\n\nRestrictions:\n- Cannot modify super-admin accounts.\n- Admin cannot modify other admins or super-admins.\n- Admin can only promote user→admin, never demote.\n- Cannot change role to super-admin via this route."
+          }
+        },
+        {
+          "name": "Delete User By ID",
           "request": {
             "method": "DELETE",
-            "url": "{{baseUrl}}/api/users/:id"
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "64f8a1b2c3d4e5f6a7b8c9d0",
+                  "description": "MongoDB ObjectId of the target user"
+                }
+              ]
+            },
+            "description": "Delete a user account.\n\nRestrictions:\n- Cannot delete own account.\n- Cannot delete super-admin accounts.\n- Admin cannot delete other admins."
           }
         },
         {
-          "name": "Get System Stats (Admin)",
+          "name": "Get System Stats",
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/api/users/stats"
+            "header": [],
+            "url": "{{baseUrl}}/api/users/stats",
+            "description": "Get system statistics: total users, admin count, and regular user count."
+          }
+        }
+      ]
+    },
+    {
+      "name": "👑 Super Admin Only",
+      "description": "Endpoints exclusively accessible by users with the 'super-admin' role.",
+      "item": [
+        {
+          "name": "Get Change Logs (Audit Trail)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/users/change-logs",
+            "description": "Retrieve the full audit trail of all system changes including CREATE, UPDATE, DELETE, and ROLE_CHANGE actions. Populates the actor and target user details."
           }
         }
       ]
     }
   ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
   "variable": [
     {
       "key": "baseUrl",
-      "value": "http://localhost:3000"
+      "value": "http://localhost:3000",
+      "type": "string",
+      "description": "Backend API base URL"
     }
   ]
 }
+
